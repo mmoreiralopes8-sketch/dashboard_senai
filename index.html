@@ -556,7 +556,7 @@
             </div>
           </div>
           <div class="chart-scroll">
-            <svg id="cashflow-mini" class="chart-svg" viewBox="0 0 560 220" role="img" aria-label="Gráfico de barras: entradas e saídas de caixa nas quatro semanas de setembro, com saldo de cada semana indicado acima das barras."></svg>
+            <svg id="cashflow-mini" class="chart-svg" viewBox="0 0 560 220" role="img" aria-label="Gráfico de barras: entradas e saídas de caixa nas quatro semanas de setembro."></svg>
           </div>
         </div>
 
@@ -1455,17 +1455,13 @@
     svg.setAttribute("viewBox", "0 0 " + w + " " + h);
     svg.style.color = "var(--text-faint)";
 
-    /* gridlines: 0, 1/2, max */
+    /* gridlines: 0, 1/2, max — lines go behind the bars, labels are drawn
+       last (after the bars) so a tall bar never covers the axis text */
+    var gridLabels = [];
     [0, 0.5, 1].forEach(function (t) {
       var y = padT + plotH * (1 - t);
       svg.appendChild(el("line", { x1: padL, x2: w - padR, y1: y, y2: y, stroke: cGrid, "stroke-width": 1 }));
-      var label = svg.ownerDocument.createElementNS(svgns, "text");
-      label.setAttribute("x", padL);
-      label.setAttribute("y", y - 4);
-      label.setAttribute("class", "bar-tip");
-      label.setAttribute("fill", cMuted);
-      label.textContent = t === 0 ? "R$ 0" : fmtBRL(niceMax * t);
-      svg.appendChild(label);
+      gridLabels.push({ y: y, text: t === 0 ? "R$ 0" : fmtBRL(niceMax * t) });
     });
 
     var growers = [];
@@ -1527,6 +1523,21 @@
     });
 
     svg.appendChild(el("line", { x1: padL, x2: w - padR, y1: padT + plotH, y2: padT + plotH, stroke: cAxis, "stroke-width": 1 }));
+
+    /* axis value labels: drawn last, on top of the bars, with a small
+       backing chip so they stay readable even where a tall bar crosses
+       the gridline */
+    gridLabels.forEach(function (g) {
+      var text = g.text;
+      var chipW = text.length * 6.1 + 10;
+      var chipH = 15;
+      svg.appendChild(el("rect", { x: padL - 4, y: g.y - 4 - chipH + 3, width: chipW, height: chipH, rx: 4, fill: cSurface, opacity: 0.86 }));
+      var label = el("text", { x: padL, y: g.y - 4 });
+      label.setAttribute("class", "bar-tip");
+      label.setAttribute("fill", cMuted);
+      label.textContent = text;
+      svg.appendChild(label);
+    });
 
     /* grow-in animation */
     if (prefersReducedMotion) {
