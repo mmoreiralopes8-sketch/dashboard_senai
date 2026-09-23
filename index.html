@@ -80,6 +80,7 @@
   }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -224,6 +225,11 @@
   .sample-flag .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
   section[data-panel] { display: flex; flex-direction: column; gap: 24px; }
+  section[data-panel].panel-enter { animation: panelIn 0.4s ease both; }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    section[data-panel].panel-enter { animation: none; }
+  }
 
   /* ---------- kpi cards ---------- */
   .kpi-row {
@@ -1204,7 +1210,15 @@
   var panels = Array.prototype.slice.call(document.querySelectorAll("section[data-panel]"));
 
   function showPanel(id) {
-    panels.forEach(function (p) { p.hidden = p.getAttribute("data-panel") !== id; });
+    panels.forEach(function (p) {
+      var isTarget = p.getAttribute("data-panel") === id;
+      p.hidden = !isTarget;
+      p.classList.remove("panel-enter");
+      if (isTarget) {
+        void p.offsetWidth; /* restart animation */
+        p.classList.add("panel-enter");
+      }
+    });
     navButtons.forEach(function (b) {
       if (b.getAttribute("data-target") === id) b.setAttribute("aria-current", "page");
       else b.removeAttribute("aria-current");
@@ -1218,7 +1232,12 @@
 
   var startId = (location.hash || "").replace("#", "");
   var validIds = panels.map(function (p) { return p.getAttribute("data-panel"); });
-  if (validIds.indexOf(startId) !== -1) showPanel(startId);
+  if (validIds.indexOf(startId) !== -1) {
+    showPanel(startId);
+  } else {
+    var current = panels.filter(function (p) { return !p.hidden; })[0];
+    if (current) current.classList.add("panel-enter");
+  }
 
   /* ---------- kpi / credit-item navigation ---------- */
   var goers = Array.prototype.slice.call(document.querySelectorAll("[data-goto]"));
